@@ -40,14 +40,14 @@ process log_version_sga {
 
 process run_sga_preprocess {
     tag { "${params.project_name}.${sample_id}.rSgaPreProcess" }
-    publishDir "${params.out_dir}/${sample_id}", mode: 'symlink', overwrite: false
+    publishDir "${params.out_dir}/${sample_id}", mode: 'copy', overwrite: false
     label 'sga'
 
     input:
     set val(sample_id), file(fastq_r1_file), file(fastq_r2_file) from samples_2
 
     output:
-    set val(sample_id), file("${sample_id}.fastq") into pp_fastq
+    set val(sample_id), file("${sample_id}.fastq") into fastq1, fastq2
 
     script:
     """
@@ -63,20 +63,20 @@ process run_sga_index {
     tag { "${params.project_name}.${sample_id}.rSgaIndex" }
     memory { 64.GB * task.attempt }
     cpus { "${params.sga_threads}" }
-    publishDir "${params.out_dir}/${sample_id}", mode: 'symlink', overwrite: false
+    publishDir "${params.out_dir}/${sample_id}", mode: 'copy', overwrite: false
     label 'sga'
 
     input:
-    set val(sample_id), file(fastq_file) from fastq
+    set val(sample_id), file(fastq_file) from fastq1
 
     output:
-    set val(sample_id), file("${sample_id}.*")  into index
+    set val(sample_id), file("${sample_id}.bwt"), file("${sample_id}.sai") into index
 
     script:
     """
     sga index \
     -a ropebwt \
-    -no-reverse \
+    --no-reverse \
     -t ${params.sga_threads} \
     ${fastq_file}
     """
@@ -86,11 +86,12 @@ process run_sga_correct {
     tag { "${params.project_name}.${sample_id}.rSgaCorrect" }
     memory { 64.GB * task.attempt }
     cpus { "${params.sga_threads}" }
-    publishDir "${params.out_dir}/${sample_id}", mode: 'symlink', overwrite: false
+    publishDir "${params.out_dir}/${sample_id}", mode: 'copy', overwrite: false
     label 'sga'
 
     input:
-    set val(sample_id), file("${sample_id}.fastq") from index
+    set val(sample_id), file("${sample_id}.bwt"), file("${sample_id}.sai") from index
+    set val(sample_id_dummy), file("${sample_id}.fastq") from fastq2
 
     output:
     set val(sample_id), file("${sample_id}.*")  into correct
@@ -98,7 +99,7 @@ process run_sga_correct {
     script:
     """
     sga correct \
-    -k ${k} \
+    -k ${params.k} \
     --learn \
     -t ${params.sga_threads} \
     -o ${sample_id}.correct.fastq \
