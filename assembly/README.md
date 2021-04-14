@@ -30,4 +30,5 @@ nextflow -log nextflow.log run -w /cbio/projects/012/stream1/team/gerrit/assembl
 
 The output directory will contain per sample directories. Each sample directory will contain
 
-1. `NA12878.*` - All necessary SGA files
+1. `NA12878.*` - All SGA created files
+2. `NA12878.assemble`, `NA12878.assemble-graph.asqg.gz`, `NA12878.assemble-variants.fa`, `NA12878.correct.filter.pass.merged.rmdup.asqg.gz`  - output files generated from HUPAN pipeline
