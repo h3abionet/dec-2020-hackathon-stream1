@@ -14,7 +14,7 @@ Channel.fromPath( file(params.sample_sheet) )
 process sga_log_version {
     tag { "${params.project_name}.sgaLogVersion" }
     echo true
-    publishDir "${params.out_dir}/", mode: 'copy', overwrite: false
+    publishDir "${params.out_dir}/", mode: 'symlink', overwrite: false
     label 'bwa_samtools'
 
     output:
@@ -28,7 +28,7 @@ process sga_log_version {
 
 process sga_preprocess {
     tag { "${params.project_name}.${sample_id}.sgaPreProcess" }
-    publishDir "${params.out_dir}/${sample_id}", mode: 'copy', overwrite: false
+    publishDir "${params.out_dir}/${sample_id}", mode: 'symlink', overwrite: false
     label 'sga'
 
     input:
@@ -50,8 +50,9 @@ process sga_preprocess {
 process sga_index {
     tag { "${params.project_name}.${sample_id}.sgaIndex" }
     cpus { "${params.sga_threads}" }
-    publishDir "${params.out_dir}/${sample_id}", mode: 'copy', overwrite: false
+    publishDir "${params.out_dir}/${sample_id}", mode: 'symlink', overwrite: false
     label 'sga'
+    memory '100 GB'
 
     input:
     set val(sample_id), file(fastq_file) from preprocess
@@ -72,8 +73,10 @@ process sga_index {
 process sga_correct {
     tag { "${params.project_name}.${sample_id}.sgaCorrect" }
     cpus { "${params.sga_threads}" }
-    publishDir "${params.out_dir}/${sample_id}", mode: 'copy', overwrite: false
+    publishDir "${params.out_dir}/${sample_id}", mode: 'symlink', overwrite: false
     label 'sga'
+    time '48h'
+    memory '50 GB'
 
     input:
     set val(sample_id), file("${sample_id}.fastq"), file("${sample_id}.bwt"), file("${sample_id}.sai") from index
@@ -95,9 +98,9 @@ process sga_correct {
 process sga_index_on_correct {
     tag { "${params.project_name}.${sample_id}.sgaIndexOnCorrect" }
     cpus { "${params.sga_threads}" }
-    publishDir "${params.out_dir}/${sample_id}", mode: 'copy', overwrite: false
+    publishDir "${params.out_dir}/${sample_id}", mode: 'symlink', overwrite: false
     label 'sga'
-
+    memory '55 GB'
     input:
     set val(sample_id), file("${sample_id}.correct.fastq") from correct
 
@@ -116,8 +119,9 @@ process sga_index_on_correct {
 process sga_filter {
     tag { "${params.project_name}.${sample_id}.sgaFilter" }
     cpus { "${params.sga_threads}" }
-    publishDir "${params.out_dir}/${sample_id}", mode: 'copy', overwrite: false
+    publishDir "${params.out_dir}/${sample_id}", mode: 'symlink', overwrite: false
     label 'sga'
+    memory '80 GB'
 
     input:
     set val(sample_id), file("${sample_id}.correct.fastq"), file("${sample_id}.correct.bwt"), file("${sample_id}.correct.sai"), file("${sample_id}.correct.rbwt"), file("${sample_id}.correct.rsai") from index_on_correct
@@ -138,8 +142,10 @@ process sga_filter {
 process sga_fm_merge {
     tag { "${params.project_name}.${sample_id}.sgaFmMerge" }
     cpus { "${params.sga_threads}" }
-    publishDir "${params.out_dir}/${sample_id}", mode: 'copy', overwrite: false
+    publishDir "${params.out_dir}/${sample_id}", mode: 'symlink', overwrite: false
     label 'sga'
+    memory '65 GB'
+    time '96h'
 
     input:
     set val(sample_id), file("${sample_id}.correct.filter.pass.bwt"), file("${sample_id}.correct.filter.pass.sai"), file("${sample_id}.correct.filter.pass.rbwt"), file("${sample_id}.correct.filter.pass.rsai"), file("${sample_id}.correct.filter.pass.fa") from filter
@@ -160,8 +166,9 @@ process sga_fm_merge {
 process sga_index_on_fm_merge {
     tag { "${params.project_name}.${sample_id}.sgaIndexOnFmMerge" }
     cpus { "${params.sga_threads}" }
-    publishDir "${params.out_dir}/${sample_id}", mode: 'copy', overwrite: false
+    publishDir "${params.out_dir}/${sample_id}", mode: 'symlink', overwrite: false
     label 'sga'
+    memory '75 GB'
 
     input:
     set val(sample_id), file("${sample_id}.correct.filter.pass.merged.fa") from fm_merge
@@ -181,8 +188,9 @@ process sga_index_on_fm_merge {
 process sga_rmdup {
     tag { "${params.project_name}.${sample_id}.sgaRmdup" }
     cpus { "${params.sga_threads}" }
-    publishDir "${params.out_dir}/${sample_id}", mode: 'copy', overwrite: false
+    publishDir "${params.out_dir}/${sample_id}", mode: 'symlink', overwrite: false
     label 'sga'
+    memory '7 GB'
 
     input:
     set val(sample_id), file("${sample_id}.correct.filter.pass.merged.fa"), file("${sample_id}.correct.filter.pass.merged.bwt"), file("${sample_id}.correct.filter.pass.merged.sai"), file("${sample_id}.correct.filter.pass.merged.rbwt"), file("${sample_id}.correct.filter.pass.merged.rsai") from index_on_fm_merge 
@@ -204,6 +212,7 @@ process sga_overlap {
     cpus { "${params.sga_threads}" }
     publishDir "${params.out_dir}/${sample_id}", mode: 'copy', overwrite: false
     label 'sga'
+    memory '20 GB'
 
     input:
     set val(sample_id), file("${sample_id}.correct.filter.pass.merged.rmdup.fa"), file("${sample_id}.correct.filter.pass.merged.rmdup.bwt"), file("${sample_id}.correct.filter.pass.merged.rmdup.sai"),  file("${sample_id}.correct.filter.pass.merged.rmdup.rbwt"), file("${sample_id}.correct.filter.pass.merged.rmdup.rsai") from rmdup
@@ -223,8 +232,9 @@ process sga_overlap {
 process sga_assemble {
     tag { "${params.project_name}.${sample_id}.sgaAssemble" }
     cpus { "${params.sga_threads}" }
-    publishDir "${params.out_dir}/${sample_id}", mode: 'copy', overwrite: false
+    publishDir "${params.out_dir}/${sample_id}", mode: 'move', overwrite: false
     label 'sga'
+    memory '32 GB'
 
     input:
     set val(sample_id), file("${sample_id}.correct.filter.pass.merged.rmdup.asqg.gz") from overlap
